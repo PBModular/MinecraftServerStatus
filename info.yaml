@@ -1,0 +1,7 @@
+info:
+  name: MinecraftServerStatus
+  author: Ultra119
+  version: 1.0
+  description: Search for anime images
+  src_url: https://github.com/PBModular/AnimePic
+  python: 3.12.2

@@ -1,0 +1,23 @@
+mcaddserver: 
+  usage: |
+    Використання: <code>/addmcserver IP-адреса сервера[:порт]</code>
+
+  already_added: Сервер з IP <code>{server_address}</code> вже додано.
+  added: Сервер <code>{server_address}</code> успішно додано.
+
+mcstatus: 
+  no_servers: ⛔ Серверів поки що не додано.
+  no_statuses: 🔴 Всі сервери офлайн.
+
+server_status:
+  bedrock: |
+    🟢 <b>Сервер:</b> <code>{server_address}</code>
+    ⚙️ <b>Версія:</b> Bedrock {status_version_name}
+    👀 <b>Гравці:</b> {status_players_online} з {status_players_max}
+  java: |
+    🟢 <b>Сервер:</b> <code>{server_address}</code>
+    ⚙️ <b>Версія:</b> Java {status_version_name}
+    👀 <b>Гравці:</b> {status_players_online} з {status_players_max}
+  server_offline: |
+    🔴 Сервер <code>{server_address}</code> офлайн.
+    

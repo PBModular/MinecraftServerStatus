@@ -1,0 +1,23 @@
+mcaddserver: 
+  usage: |
+    Usage: <code>/addmcserver Server IP[:port]</code>
+
+  already_added: Server with IP <code>{server_address}</code> already added.
+  added: Server <code>{server_address}</code> succesfully added.
+
+mcstatus: 
+  no_servers: ⛔ No servers added yet.
+  no_statuses: 🔴 All servers are offline.
+
+server_status:
+  bedrock: |
+    🟢 <b>Server:</b> <code>{server_address}</code>
+    ⚙️ <b>Version:</b> Bedrock {status_version_name}
+    👀 <b>Players:</b> {status_players_online}/{status_players_max}
+  java: |
+    🟢 <b>Server:</b> <code>{server_address}</code>
+    ⚙️ <b>Version:</b> Java {status_version_name}
+    👀 <b>Players:</b> {status_players_online} of {status_players_max}
+  server_offline: |
+    🔴 Server <code>{server_address}</code> is offline.
+    
