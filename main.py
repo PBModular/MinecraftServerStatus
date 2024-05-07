@@ -5,7 +5,6 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from base.module import BaseModule, command, allowed_for
 from mcstatus import BedrockServer, JavaServer
-from mcstatus.status_response import BedrockStatusResponse, JavaStatusResponse
 
 class ServerStatusModule(BaseModule):
     def on_init(self, *args, **kwargs):
@@ -35,10 +34,9 @@ class ServerStatusModule(BaseModule):
         server_ip = server_address.split(":")[0]
         chat_id = str(message.chat.id)
 
-        if chat_id not in self.servers:
-            self.servers[chat_id] = []
+        self.servers.setdefault(chat_id, [])
 
-        if any(server_ip == s.split(":")[0] for s in self.servers[chat_id]):
+        if server_ip in [s.split(":")[0] for s in self.servers[chat_id]]:
             await message.reply(self.S["mcaddserver"]["already_added"].format(server_address=server_ip))
         else:
             self.servers[chat_id].append(server_address)
@@ -49,12 +47,12 @@ class ServerStatusModule(BaseModule):
     async def status_cmd(self, bot: Client, message: Message):
         chat_id = str(message.chat.id)
 
-        if chat_id not in self.servers or not self.servers[chat_id]:
+        if not self.servers.get(chat_id):
             await message.reply(self.S["mcstatus"]["no_servers"])
             return
 
-        status_messages = await asyncio.gather(*[self.get_server_status(server_address) for server_address in self.servers[chat_id]])
-        server_statuses = [msg for msg in status_messages if msg is not None]
+        server_statuses = await asyncio.gather(*[self.get_server_status(server_address) for server_address in self.servers[chat_id]])
+        server_statuses = [status for status in server_statuses if status]
 
         if all("🔴" in status for status in server_statuses):
             await message.reply(self.S["mcstatus"]["no_statuses"])
@@ -63,52 +61,67 @@ class ServerStatusModule(BaseModule):
 
     async def get_server_status(self, server_address: str) -> str:
         try:
-            status = await self.handle_exceptions(
-                *(
-                    await asyncio.wait(
-                        {
-                            asyncio.create_task(self.handle_java(server_address)),
-                            asyncio.create_task(self.handle_bedrock(server_address)),
-                        },
-                        return_when=asyncio.FIRST_COMPLETED,
-                    )
-                )
-            )
-
+            status = await asyncio.wait_for(self.fetch_server(server_address), timeout=5)
             if status is None:
                 return self.S["server_status"]["server_offline"].format(server_address=server_address)
-            elif isinstance(status, BedrockStatusResponse):
-                return self.S["server_status"]["bedrock"].format(server_address=server_address, status_players_online=status.players.online, 
-                                                                status_players_max=status.players.max, status_version_name=status.version.name)
-            elif isinstance(status, JavaStatusResponse):
-                return self.S["server_status"]["java"].format(server_address=server_address, status_players_online=status.players.online, 
-                                                            status_players_max=status.players.max, status_version_name=status.version.name)
+            elif isinstance(status, dict):
+                if status["type"] == "bedrock":
+                    return self.S["server_status"]["bedrock"].format(
+                        server_address=server_address,
+                        status_players_online=status["players_online"],
+                        status_players_max=status["players_max"],
+                        status_version_name=status["version_name"]
+                    )
+                elif status["type"] == "java":
+                    return self.S["server_status"]["java"].format(
+                        server_address=server_address,
+                        status_players_online=status["players_online"],
+                        status_players_max=status["players_max"],
+                        status_version_name=status["version_name"]
+                    )
                 
+        except asyncio.TimeoutError:
+            return self.S["server_status"]["server_offline"].format(server_address=server_address)
         except Exception as e:
-            return self.logger.error(f"Failed to retrieve status for {server_address}: {str(e)}")
-
-
-    async def handle_exceptions(self, done: set[asyncio.Task], pending: set[asyncio.Task]) -> JavaStatusResponse | BedrockStatusResponse | None:
-        if len(done) == 0:
+            self.logger.error(f"Failed to retrieve status for {server_address}: {str(e)}")
             return None
 
-        for task in done:
-            if task.exception() is None:
-                for pending_task in pending:
-                    pending_task.cancel()
-                return task.result()
-            
-        self.logger.error("No tasks were successful. Server might be offline.")
-        return None
-    
-    async def handle_java(self, server_address: str) -> JavaStatusResponse:
-        try:
-            return await (await JavaServer.async_lookup(server_address)).async_status()
-        except Exception:
-            pass
+    async def fetch_server(self, server_address: str) -> dict | None:
+        java_task = asyncio.create_task(self.fetch_java(server_address))
+        bedrock_task = asyncio.create_task(self.fetch_bedrock(server_address))
 
-    async def handle_bedrock(self, server_address: str) -> BedrockStatusResponse:
+        results = await asyncio.gather(java_task, bedrock_task)
+        java_status, bedrock_status = results
+
+        if java_status is not None:
+            return java_status
+        elif bedrock_status is not None:
+            return bedrock_status
+        else:
+            return None
+
+    async def fetch_java(self, server_address: str) -> dict | None:
         try:
-            return await BedrockServer.lookup(server_address).async_status()
+            server = await JavaServer.async_lookup(server_address)
+            status = await server.async_status()
+            return {
+                "type": "java",
+                "players_online": status.players.online,
+                "players_max": status.players.max,
+                "version_name": status.version.name
+            }
         except Exception:
-            pass
+            return None
+
+    async def fetch_bedrock(self, server_address: str) -> dict | None:
+        try:
+            server = BedrockServer.lookup(server_address)
+            status = await server.async_status()
+            return {
+                "type": "bedrock",
+                "players_online": status.players_online,
+                "players_max": status.players_max,
+                "version_name": status.version.name
+            }
+        except Exception:
+            return None
