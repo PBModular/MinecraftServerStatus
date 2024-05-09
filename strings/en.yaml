@@ -8,6 +8,7 @@ mcaddserver:
 mcstatus: 
   no_servers: ⛔ No servers added yet.
   no_statuses: 🔴 All servers are offline.
+  button: 🔄 Update
 
 server_status:
   bedrock: |

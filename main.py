@@ -2,9 +2,10 @@ import json
 import os
 import asyncio
 from pyrogram import Client, filters
-from pyrogram.types import Message
-from base.module import BaseModule, command, allowed_for
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from base.module import BaseModule, command, allowed_for, callback_query
 from mcstatus import BedrockServer, JavaServer
+
 
 class ServerStatusModule(BaseModule):
     def on_init(self, *args, **kwargs):
@@ -57,7 +58,23 @@ class ServerStatusModule(BaseModule):
         if all("🔴" in status for status in server_statuses):
             await message.reply(self.S["mcstatus"]["no_statuses"])
         else:
-            await message.reply("\n".join(server_statuses))
+            refresh_button = InlineKeyboardMarkup([[InlineKeyboardButton(self.S["mcstatus"]["button"], callback_data="refresh_status")]])
+            await message.reply("\n".join(server_statuses), reply_markup=refresh_button)
+
+    @callback_query(filters.regex("refresh_status"))
+    async def refresh_status(self, bot: Client, callback_query):
+        message = callback_query.message
+        chat_id = str(message.chat.id)
+
+        server_statuses = await asyncio.gather(*[self.get_server_status(server_address) for server_address in self.servers[chat_id]])
+        server_statuses = [status for status in server_statuses if status]
+
+        if all("🔴" in status for status in server_statuses):
+            await message.edit_text(self.S["mcstatus"]["no_statuses"])
+        else:
+            await message.edit_text("\n".join(server_statuses), reply_markup=message.reply_markup)
+
+        await callback_query.answer()
 
     async def get_server_status(self, server_address: str) -> str:
         try:
