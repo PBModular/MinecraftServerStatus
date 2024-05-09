@@ -53,29 +53,33 @@ class ServerStatusModule(BaseModule):
             await message.reply(self.S["mcstatus"]["no_servers"])
             return
 
+        wait_message = await message.reply(self.S["mcstatus"]["please_wait"])
+
         server_statuses = await asyncio.gather(*[self.get_server_status(server_address) for server_address in self.servers[chat_id]])
         server_statuses = [message for sublist in server_statuses for message in sublist]
 
         if all("🔴" in status for status in server_statuses):
-            await message.reply(self.S["mcstatus"]["no_statuses"])
+            await wait_message.edit(self.S["mcstatus"]["no_statuses"])
         else:
             refresh_button = InlineKeyboardMarkup([[InlineKeyboardButton(self.S["mcstatus"]["button"], callback_data="refresh_status")]])
-            await message.reply("\n".join(server_statuses), reply_markup=refresh_button)
+            await wait_message.edit("\n".join(server_statuses), reply_markup=refresh_button)
 
     @callback_query(filters.regex("refresh_status"))
     async def refresh_status(self, bot: Client, callback_query):
         message = callback_query.message
         chat_id = str(message.chat.id)
 
+        await message.edit(self.S["mcstatus"]["please_wait"])
+
         server_statuses = await asyncio.gather(*[self.get_server_status(server_address) for server_address in self.servers[chat_id]])
         server_statuses = [message for sublist in server_statuses for message in sublist]
 
         if all("🔴" in status for status in server_statuses):
-            await message.edit_text(self.S["mcstatus"]["no_statuses"])
+            await message.edit(self.S["mcstatus"]["no_statuses"])
         else:
             current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             updated_message = "\n".join(server_statuses) + "\n" + self.S["mcstatus"]["last_update"].format(current_time=current_time)
-            await message.edit_text(updated_message, reply_markup=message.reply_markup)
+            await message.edit(updated_message, reply_markup=message.reply_markup)
 
         await callback_query.answer()
 

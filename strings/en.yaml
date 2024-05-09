@@ -11,6 +11,7 @@ mcstatus:
   button: 🔄 Update
   last_update: |
     Last update: {current_time}
+  please_wait: Please wait. Processing request...
 
 server_status:
   bedrock: |
