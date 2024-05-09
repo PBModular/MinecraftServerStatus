@@ -18,8 +18,12 @@ server_status:
     ⚙️ <b>Версия:</b> Bedrock {status_version_name}
     👀 <b>Игроки:</b> {status_players_online} из {status_players_max}
   java: |
-    🟢 <b>Server:</b> <code>{server_address}</code>
+    🟢 <b>Сервер:</b> <code>{server_address}</code>
     ⚙️ <b>Версия:</b> Java {status_version_name}
+    👀 <b>Игроки:</b> {status_players_online} из {status_players_max}
+  both: |
+    🟢 <b>Сервер:</b> <code>{server_address}</code>
+    ⚙️ <b>Версия:</b> Java {java_status_version_name} | Bedrock {bedrock_status_version_name}
     👀 <b>Игроки:</b> {status_players_online} из {status_players_max}
   server_offline: |
     🔴 Сервер <code>{server_address}</code> оффлайн.

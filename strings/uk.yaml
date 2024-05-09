@@ -21,6 +21,10 @@ server_status:
     🟢 <b>Сервер:</b> <code>{server_address}</code>
     ⚙️ <b>Версія:</b> Java {status_version_name}
     👀 <b>Гравці:</b> {status_players_online} з {status_players_max}
+  both: |
+    🟢 <b>Сервер:</b> <code>{server_address}</code>
+    ⚙️ <b>Версія:</b> Java {java_status_version_name} | Bedrock {bedrock_status_version_name}
+    👀 <b>Гравці:</b> {status_players_online} з {status_players_max}
   server_offline: |
     🔴 Сервер <code>{server_address}</code> офлайн.
     
