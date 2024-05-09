@@ -13,6 +13,7 @@ class ServerStatusModule(BaseModule):
         super().on_init(*args, **kwargs)
         self.servers_file = os.path.join(os.path.dirname(__file__), "servers.json")
         self.servers = self.load_servers()
+        self.processing_lock = asyncio.Lock()
 
     def load_servers(self):
         try:
@@ -47,41 +48,43 @@ class ServerStatusModule(BaseModule):
 
     @command("mcstatus")
     async def status_cmd(self, bot: Client, message: Message):
-        chat_id = str(message.chat.id)
+        async with self.processing_lock:
+            chat_id = str(message.chat.id)
 
-        if not self.servers.get(chat_id):
-            await message.reply(self.S["mcstatus"]["no_servers"])
-            return
+            if not self.servers.get(chat_id):
+                await message.reply(self.S["mcstatus"]["no_servers"])
+                return
 
-        wait_message = await message.reply(self.S["mcstatus"]["please_wait"])
+            wait_message = await message.reply(self.S["mcstatus"]["please_wait"])
 
-        server_statuses = await asyncio.gather(*[self.get_server_status(server_address) for server_address in self.servers[chat_id]])
-        server_statuses = [message for sublist in server_statuses for message in sublist]
+            server_statuses = await asyncio.gather(*[self.get_server_status(server_address) for server_address in self.servers[chat_id]])
+            server_statuses = [message for sublist in server_statuses for message in sublist]
 
-        if all("🔴" in status for status in server_statuses):
-            await wait_message.edit(self.S["mcstatus"]["no_statuses"])
-        else:
-            refresh_button = InlineKeyboardMarkup([[InlineKeyboardButton(self.S["mcstatus"]["button"], callback_data="refresh_status")]])
-            await wait_message.edit("\n".join(server_statuses), reply_markup=refresh_button)
+            if all("🔴" in status for status in server_statuses):
+                await wait_message.edit(self.S["mcstatus"]["no_statuses"])
+            else:
+                refresh_button = InlineKeyboardMarkup([[InlineKeyboardButton(self.S["mcstatus"]["button"], callback_data="refresh_status")]])
+                await wait_message.edit("\n".join(server_statuses), reply_markup=refresh_button)
 
     @callback_query(filters.regex("refresh_status"))
     async def refresh_status(self, bot: Client, callback_query):
-        message = callback_query.message
-        chat_id = str(message.chat.id)
+        async with self.processing_lock:
+            message = callback_query.message
+            chat_id = str(message.chat.id)
 
-        await message.edit(self.S["mcstatus"]["please_wait"])
+            await message.edit(self.S["mcstatus"]["please_wait"])
 
-        server_statuses = await asyncio.gather(*[self.get_server_status(server_address) for server_address in self.servers[chat_id]])
-        server_statuses = [message for sublist in server_statuses for message in sublist]
+            server_statuses = await asyncio.gather(*[self.get_server_status(server_address) for server_address in self.servers[chat_id]])
+            server_statuses = [message for sublist in server_statuses for message in sublist]
 
-        if all("🔴" in status for status in server_statuses):
-            await message.edit(self.S["mcstatus"]["no_statuses"])
-        else:
-            current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            updated_message = "\n".join(server_statuses) + "\n" + self.S["mcstatus"]["last_update"].format(current_time=current_time)
-            await message.edit(updated_message, reply_markup=message.reply_markup)
+            if all("🔴" in status for status in server_statuses):
+                await message.edit(self.S["mcstatus"]["no_statuses"])
+            else:
+                current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                updated_message = "\n".join(server_statuses) + "\n" + self.S["mcstatus"]["last_update"].format(current_time=current_time)
+                await message.edit(updated_message, reply_markup=message.reply_markup)
 
-        await callback_query.answer()
+            await callback_query.answer()
 
     async def get_server_status(self, server_address: str) -> list[str]:
         messages = []
