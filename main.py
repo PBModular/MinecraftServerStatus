@@ -1,6 +1,7 @@
 import json
 import os
 import asyncio
+import datetime
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from base.module import BaseModule, command, allowed_for, callback_query
@@ -72,7 +73,9 @@ class ServerStatusModule(BaseModule):
         if all("🔴" in status for status in server_statuses):
             await message.edit_text(self.S["mcstatus"]["no_statuses"])
         else:
-            await message.edit_text("\n".join(server_statuses), reply_markup=message.reply_markup)
+            current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            updated_message = "\n".join(server_statuses) + "\n" + self.S["mcstatus"]["last_update"].format(current_time=current_time)
+            await message.edit_text(updated_message, reply_markup=message.reply_markup)
 
         await callback_query.answer()
 

@@ -9,6 +9,8 @@ mcstatus:
   no_servers: ⛔ No servers added yet.
   no_statuses: 🔴 All servers are offline.
   button: 🔄 Update
+  last_update: |
+    Last update: {current_time}
 
 server_status:
   bedrock: |
