@@ -26,7 +26,7 @@ class ServerStatusModule(BaseModule):
         with open(self.servers_file, "w") as file:
             json.dump(self.servers, file)
 
-    #@allowed_for("chat_admins")
+    @allowed_for(["chat_admins", "chat_owner"])
     @command("addmcserver")
     async def addserver_cmd(self, bot: Client, message: Message):
         if len(message.text.split()) < 2:
