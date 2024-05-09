@@ -13,7 +13,7 @@ class ServerStatusModule(BaseModule):
         super().on_init(*args, **kwargs)
         self.servers_file = os.path.join(os.path.dirname(__file__), "servers.json")
         self.servers = self.load_servers()
-        self.processing_lock = asyncio.Lock()
+        self.processing_locks = {}
 
     def load_servers(self):
         try:
@@ -48,9 +48,14 @@ class ServerStatusModule(BaseModule):
 
     @command("mcstatus")
     async def status_cmd(self, bot: Client, message: Message):
-        async with self.processing_lock:
-            chat_id = str(message.chat.id)
+        chat_id = str(message.chat.id)
+        if chat_id not in self.processing_locks:
+            self.processing_locks[chat_id] = asyncio.Lock()
+        lock = self.processing_locks[chat_id]
+        if lock.locked():
+            return
 
+        async with lock:
             if not self.servers.get(chat_id):
                 await message.reply(self.S["mcstatus"]["no_servers"])
                 return
@@ -68,9 +73,16 @@ class ServerStatusModule(BaseModule):
 
     @callback_query(filters.regex("refresh_status"))
     async def refresh_status(self, bot: Client, callback_query):
-        async with self.processing_lock:
+        chat_id = str(callback_query.message.chat.id)
+        if chat_id not in self.processing_locks:
+            self.processing_locks[chat_id] = asyncio.Lock()
+        lock = self.processing_locks[chat_id]
+        if lock.locked():
+            await callback_query.answer(self.S["mcstatus"]["already_updating"])
+            return
+
+        async with lock:
             message = callback_query.message
-            chat_id = str(message.chat.id)
 
             await message.edit(self.S["mcstatus"]["please_wait"])
 

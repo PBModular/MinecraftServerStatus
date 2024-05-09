@@ -12,6 +12,7 @@ mcstatus:
   last_update: |
     Последнее обновление: {current_time}
   please_wait: Пожалуйста, подождите. Идет обработка запроса...
+  already_updating: Уже идет обработка запроса...
 
 server_status:
   bedrock: |
