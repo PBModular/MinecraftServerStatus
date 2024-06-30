@@ -72,6 +72,22 @@ class ServerStatusModule(BaseModule):
             else:
                 await wait_message.edit("\n".join(server_statuses), reply_markup=refresh_button)
 
+    @command("mcinfo")
+    async def mcinfo_cmd(self, bot: Client, message: Message):
+        if len(message.text.split()) < 2:
+            await message.reply(self.S["mcinfo"]["usage"])
+            return
+
+        server_address = message.text.split(" ", maxsplit=1)[1]
+        wait_message = await message.reply(self.S["mcstatus"]["please_wait"])
+
+        server_statuses = await self.get_server_status(server_address)
+
+        if all("🔴" in status for status in server_statuses):
+            await wait_message.edit(self.S["mcinfo"]["no_status"])
+        else:
+            await wait_message.edit("\n".join(server_statuses))
+
     @callback_query(filters.regex("refresh_status"))
     async def refresh_status(self, bot: Client, callback_query):
         chat_id = str(callback_query.message.chat.id)
