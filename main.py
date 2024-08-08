@@ -14,6 +14,9 @@ class ServerStatusModule(BaseModule):
         self.servers_file = os.path.join(os.path.dirname(__file__), "servers.json")
         self.servers = self.load_servers()
         self.processing_locks = {}
+        self.cache = {}
+        self.update_interval = 60
+        self.start_background_update()
 
     def load_servers(self):
         try:
@@ -25,6 +28,20 @@ class ServerStatusModule(BaseModule):
     def save_servers(self):
         with open(self.servers_file, "w") as file:
             json.dump(self.servers, file)
+
+    def start_background_update(self):
+        loop = asyncio.get_event_loop()
+        loop.create_task(self.background_update())
+
+    async def background_update(self):
+        while True:
+            await asyncio.sleep(self.update_interval)
+            await self.update_all_server_statuses()
+
+    async def update_all_server_statuses(self):
+        for chat_id, servers in self.servers.items():
+            server_statuses = await asyncio.gather(*[self.get_server_status(server_address) for server_address in servers])
+            self.cache[chat_id] = [message for sublist in server_statuses for message in sublist]
 
     @allowed_for(["chat_admins", "chat_owner"])
     @command("addmcserver")
@@ -62,8 +79,11 @@ class ServerStatusModule(BaseModule):
 
             wait_message = await message.reply(self.S["mcstatus"]["please_wait"])
 
-            server_statuses = await asyncio.gather(*[self.get_server_status(server_address) for server_address in self.servers[chat_id]])
-            server_statuses = [message for sublist in server_statuses for message in sublist]
+            if chat_id not in self.cache or not self.cache.get(chat_id):
+                await self.update_all_server_statuses()
+                server_statuses = self.cache.get(chat_id, [])
+            else:
+                server_statuses = self.cache.get(chat_id, [])
 
             refresh_button = InlineKeyboardMarkup([[InlineKeyboardButton(self.S["mcstatus"]["button"], callback_data="refresh_status")]])
 
@@ -100,11 +120,10 @@ class ServerStatusModule(BaseModule):
 
         async with lock:
             message = callback_query.message
-
             await message.edit(self.S["mcstatus"]["please_wait"])
 
-            server_statuses = await asyncio.gather(*[self.get_server_status(server_address) for server_address in self.servers[chat_id]])
-            server_statuses = [message for sublist in server_statuses for message in sublist]
+            await self.update_all_server_statuses()
+            server_statuses = self.cache.get(chat_id, [])
 
             refresh_button = InlineKeyboardMarkup([[InlineKeyboardButton(self.S["mcstatus"]["button"], callback_data="refresh_status")]])
 
