@@ -18,8 +18,7 @@ mcstatus:
   button: 🔄 Update
   last_update: |
     Last update: {current_time}
-  please_wait: Please wait. The request is being processed...
-  already_updating: There is already a request in process...
+  please_wait: Please wait. Processing request...
 
 mcinfo:
   no_status: 🔴 Server is offline.

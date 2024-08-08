@@ -12,7 +12,6 @@ class ServerStatusModule(BaseModule):
     def on_init(self):
         self.servers_file = os.path.join(os.path.dirname(__file__), "servers.json")
         self.servers = self.load_servers()
-        self.processing_locks = {}
         self.cache = {}
         self.update_interval = 60
         self.start_background_update()
@@ -73,7 +72,7 @@ class ServerStatusModule(BaseModule):
         server_ip = server_address.split(":")[0]
         chat_id = str(message.chat.id)
 
-        if chat_id not in self.servers or server_ip not in [s.split(":")[0] for s in self.servers[chat_id]]:
+        if chat_id not in self.servers or (server_ip or server_address) not in [s.split(":")[0] for s in self.servers[chat_id]]:
             await message.reply(self.S["delmcserver"]["not_found"].format(server_address=server_address))
         else:
             self.servers[chat_id] = [s for s in self.servers[chat_id] if not s.startswith(server_ip)]
@@ -85,31 +84,25 @@ class ServerStatusModule(BaseModule):
     @command("mcstatus")
     async def status_cmd(self, bot: Client, message: Message):
         chat_id = str(message.chat.id)
-        if chat_id not in self.processing_locks:
-            self.processing_locks[chat_id] = asyncio.Lock()
-        lock = self.processing_locks[chat_id]
-        if lock.locked():
+
+        if not self.servers.get(chat_id):
+            await message.reply(self.S["mcstatus"]["no_servers"])
             return
 
-        async with lock:
-            if not self.servers.get(chat_id):
-                await message.reply(self.S["mcstatus"]["no_servers"])
-                return
+        wait_message = await message.reply(self.S["mcstatus"]["please_wait"])
 
-            wait_message = await message.reply(self.S["mcstatus"]["please_wait"])
+        if chat_id not in self.cache or not self.cache.get(chat_id):
+            await self.update_all_server_statuses()
+            server_statuses = self.cache.get(chat_id, [])
+        else:
+            server_statuses = self.cache.get(chat_id, [])
 
-            if chat_id not in self.cache or not self.cache.get(chat_id):
-                await self.update_all_server_statuses()
-                server_statuses = self.cache.get(chat_id, [])
-            else:
-                server_statuses = self.cache.get(chat_id, [])
+        refresh_button = InlineKeyboardMarkup([[InlineKeyboardButton(self.S["mcstatus"]["button"], callback_data="refresh_status")]])
 
-            refresh_button = InlineKeyboardMarkup([[InlineKeyboardButton(self.S["mcstatus"]["button"], callback_data="refresh_status")]])
-
-            if all("🔴" in status for status in server_statuses):
-                await wait_message.edit(self.S["mcstatus"]["no_statuses"], reply_markup=refresh_button)
-            else:
-                await wait_message.edit("\n".join(server_statuses), reply_markup=refresh_button)
+        if all("🔴" in status for status in server_statuses):
+            await wait_message.edit(self.S["mcstatus"]["no_statuses"], reply_markup=refresh_button)
+        else:
+            await wait_message.edit("\n".join(server_statuses), reply_markup=refresh_button)
 
     @command("mcinfo")
     async def mcinfo_cmd(self, bot: Client, message: Message):
@@ -130,30 +123,22 @@ class ServerStatusModule(BaseModule):
     @callback_query(filters.regex("refresh_status"))
     async def refresh_status(self, bot: Client, callback_query):
         chat_id = str(callback_query.message.chat.id)
-        if chat_id not in self.processing_locks:
-            self.processing_locks[chat_id] = asyncio.Lock()
-        lock = self.processing_locks[chat_id]
-        if lock.locked():
-            await callback_query.answer(self.S["mcstatus"]["already_updating"])
-            return
 
-        async with lock:
-            message = callback_query.message
-            await message.edit(self.S["mcstatus"]["please_wait"])
+        message = callback_query.message
+        await message.edit(self.S["mcstatus"]["please_wait"])
 
-            await self.update_all_server_statuses()
-            server_statuses = self.cache.get(chat_id, [])
+        server_statuses = self.cache.get(chat_id, [])
 
-            refresh_button = InlineKeyboardMarkup([[InlineKeyboardButton(self.S["mcstatus"]["button"], callback_data="refresh_status")]])
+        refresh_button = InlineKeyboardMarkup([[InlineKeyboardButton(self.S["mcstatus"]["button"], callback_data="refresh_status")]])
 
-            if all("🔴" in status for status in server_statuses):
-                await message.edit(self.S["mcstatus"]["no_statuses"], reply_markup=refresh_button)
-            else:
-                current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                updated_message = "\n".join(server_statuses) + "\n" + self.S["mcstatus"]["last_update"].format(current_time=current_time)
-                await message.edit(updated_message, reply_markup=refresh_button)
+        if all("🔴" in status for status in server_statuses):
+            await message.edit(self.S["mcstatus"]["no_statuses"], reply_markup=refresh_button)
+        else:
+            current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            updated_message = "\n".join(server_statuses) + "\n" + self.S["mcstatus"]["last_update"].format(current_time=current_time)
+            await message.edit(updated_message, reply_markup=refresh_button)
 
-            await callback_query.answer()
+        await callback_query.answer()
 
     async def get_server_status(self, server_address: str) -> list[str]:
         messages = []
