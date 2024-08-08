@@ -9,8 +9,7 @@ from mcstatus import BedrockServer, JavaServer
 from mcstatus.status_response import BedrockStatusResponse, JavaStatusResponse
 
 class ServerStatusModule(BaseModule):
-    def on_init(self, *args, **kwargs):
-        super().on_init(*args, **kwargs)
+    def on_init(self):
         self.servers_file = os.path.join(os.path.dirname(__file__), "servers.json")
         self.servers = self.load_servers()
         self.processing_locks = {}
@@ -62,6 +61,26 @@ class ServerStatusModule(BaseModule):
             self.servers[chat_id].append(server_address)
             self.save_servers()
             await message.reply(self.S["mcaddserver"]["added"].format(server_address=server_address))
+
+    @allowed_for(["chat_admins", "chat_owner"])
+    @command("delmcserver")
+    async def delserver_cmd(self, bot: Client, message: Message):
+        if len(message.text.split()) < 2:
+            await message.reply(self.S["delmcserver"]["usage"])
+            return
+
+        server_address = message.text.split(" ", maxsplit=1)[1]
+        server_ip = server_address.split(":")[0]
+        chat_id = str(message.chat.id)
+
+        if chat_id not in self.servers or server_ip not in [s.split(":")[0] for s in self.servers[chat_id]]:
+            await message.reply(self.S["delmcserver"]["not_found"].format(server_address=server_address))
+        else:
+            self.servers[chat_id] = [s for s in self.servers[chat_id] if not s.startswith(server_ip)]
+            if not self.servers[chat_id]:
+                del self.servers[chat_id]
+            self.save_servers()
+            await message.reply(self.S["delmcserver"]["deleted"].format(server_address=server_address))
 
     @command("mcstatus")
     async def status_cmd(self, bot: Client, message: Message):

@@ -5,6 +5,13 @@ mcaddserver:
   already_added: Server with IP <code>{server_address}</code> already added.
   added: Server <code>{server_address}</code> succesfully added.
 
+delmcserver: 
+  usage: |
+    Usage: <code>/delmcserver Server IP</code>
+
+  not_found: Server {server_address} not found!
+  deleted: Server {server_address} has been deleted!
+
 mcstatus: 
   no_servers: ⛔ No servers added yet.
   no_statuses: 🔴 All servers are offline.

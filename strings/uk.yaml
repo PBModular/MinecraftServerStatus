@@ -5,6 +5,13 @@ mcaddserver:
   already_added: Сервер з IP <code>{server_address}</code> вже додано.
   added: Сервер <code>{server_address}</code> успішно додано.
 
+delmcserver: 
+  usage: |
+    Використання: <code>/delmcserver IP-адреса сервера</code>
+
+  not_found: Сервер {server_address} не знайдено!
+  deleted: Сервер {server_address} було видалено!
+
 mcstatus: 
   no_servers: ⛔ Серверів поки що не додано.
   no_statuses: 🔴 Всі сервери офлайн.
@@ -17,7 +24,7 @@ mcstatus:
 mcinfo:
   no_status: 🔴 Сервер офлайн.
   usage: |
-    Використання: /mcinfo Server IP-адреса сервера[:порт]
+    Використання: /mcinfo IP-адреса сервера[:порт]
 
 server_status:
   bedrock: |
