@@ -41,6 +41,10 @@ class ServerStatusModule(BaseModule):
             server_statuses = await asyncio.gather(*[self.get_server_status(server_address) for server_address in servers])
             self.cache[chat_id] = [message for sublist in server_statuses for message in sublist]
 
+    async def check_servers_consistency(self, chat_id):
+        if chat_id not in self.servers or set(self.servers[chat_id]) != set(self.cache.get(chat_id, [])):
+            await self.update_all_server_statuses()
+
     @allowed_for(["chat_admins", "chat_owner"])
     @command("addmcserver")
     async def addserver_cmd(self, bot: Client, message: Message):
@@ -91,11 +95,8 @@ class ServerStatusModule(BaseModule):
 
         wait_message = await message.reply(self.S["mcstatus"]["please_wait"])
 
-        if chat_id not in self.cache or not self.cache.get(chat_id):
-            await self.update_all_server_statuses()
-            server_statuses = self.cache.get(chat_id, [])
-        else:
-            server_statuses = self.cache.get(chat_id, [])
+        await self.check_servers_consistency(chat_id)
+        server_statuses = self.cache.get(chat_id, [])
 
         refresh_button = InlineKeyboardMarkup([[InlineKeyboardButton(self.S["mcstatus"]["button"], callback_data="refresh_status")]])
 
@@ -127,6 +128,7 @@ class ServerStatusModule(BaseModule):
         message = callback_query.message
         await message.edit(self.S["mcstatus"]["please_wait"])
 
+        await self.check_servers_consistency(chat_id)
         server_statuses = self.cache.get(chat_id, [])
 
         refresh_button = InlineKeyboardMarkup([[InlineKeyboardButton(self.S["mcstatus"]["button"], callback_data="refresh_status")]])
