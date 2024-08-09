@@ -14,7 +14,12 @@ class ServerStatusModule(BaseModule):
         self.servers = self.load_servers()
         self.cache = {}
         self.update_interval = 60
+        self.update_task = None
         self.start_background_update()
+
+    def on_unload(self):
+        if (self, 'update_task') and self.update_task:
+            self.update_task.cancel()
 
     def load_servers(self):
         try:
@@ -29,12 +34,15 @@ class ServerStatusModule(BaseModule):
 
     def start_background_update(self):
         loop = asyncio.get_event_loop()
-        loop.create_task(self.background_update())
+        self.update_task = loop.create_task(self.background_update())
 
     async def background_update(self):
-        while True:
-            await asyncio.sleep(self.update_interval)
-            await self.update_all_server_statuses()
+        try:
+            while True:
+                await asyncio.sleep(self.update_interval)
+                await self.update_all_server_statuses()
+        except asyncio.CancelledError:
+            return
 
     async def update_all_server_statuses(self):
         for chat_id, servers in self.servers.items():
