@@ -1,7 +1,7 @@
 info:
   name: MinecraftServerStatus
   author: Ultra119
-  version: 1.1
+  version: 1.2
   description: Check Minecraft Server status
   src_url: https://github.com/PBModular/MinecraftServerStatus
-  python: 3.12.2
+  python: 3.12.5
