@@ -33,8 +33,7 @@ class ServerStatusModule(BaseModule):
             json.dump(self.servers, file)
 
     def start_background_update(self):
-        loop = asyncio.get_event_loop()
-        self.update_task = loop.create_task(self.background_update())
+        self.update_task = asyncio.create_task(self.background_update())
 
     async def background_update(self):
         try:
@@ -65,11 +64,12 @@ class ServerStatusModule(BaseModule):
     @allowed_for(["chat_admins", "chat_owner"])
     @command("addmcserver")
     async def addserver_cmd(self, bot: Client, message: Message):
-        if len(message.text.split()) < 2:
+        parts = message.text.split()
+        if len(parts) < 2:
             await message.reply(self.S["mcaddserver"]["usage"])
             return
 
-        server_address = message.text.split(" ", maxsplit=1)[1]
+        server_address = parts[1]
         server_ip = server_address.split(":")[0]
         chat_id = str(message.chat.id)
 
@@ -85,11 +85,12 @@ class ServerStatusModule(BaseModule):
     @allowed_for(["chat_admins", "chat_owner"])
     @command("delmcserver")
     async def delserver_cmd(self, bot: Client, message: Message):
-        if len(message.text.split()) < 2:
+        parts = message.text.split()
+        if len(parts) < 2:
             await message.reply(self.S["delmcserver"]["usage"])
             return
 
-        server_address = message.text.split(" ", maxsplit=1)[1]
+        server_address = parts[1]
         server_ip = server_address.split(":")[0]
         chat_id = str(message.chat.id)
 
@@ -124,11 +125,12 @@ class ServerStatusModule(BaseModule):
 
     @command("mcinfo")
     async def mcinfo_cmd(self, bot: Client, message: Message):
-        if len(message.text.split()) < 2:
+        parts = message.text.split()
+        if len(parts) < 2:
             await message.reply(self.S["mcinfo"]["usage"])
             return
 
-        server_address = message.text.split(" ", maxsplit=1)[1]
+        server_address = parts[1]
         wait_message = await message.reply(self.S["mcstatus"]["please_wait"])
 
         server_statuses = await self.get_server_status(server_address)
