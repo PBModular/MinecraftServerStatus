@@ -44,12 +44,15 @@ class ServerStatusModule(BaseModule):
             return
 
     async def update_all_server_statuses(self):
+        tasks = []
         for chat_id, server_list in self.servers.items():
-            server_statuses = []
-            for server_address in server_list:
-                statuses = await self.get_server_status(server_address)
-                server_statuses.extend(statuses)
-            self.cache[chat_id] = server_statuses
+            tasks.append(self.update_chat_server_statuses(chat_id, server_list))
+        await asyncio.gather(*tasks)
+
+    async def update_chat_server_statuses(self, chat_id, server_list):
+        tasks = [self.get_server_status(server_address) for server_address in server_list]
+        server_statuses = await asyncio.gather(*tasks)
+        self.cache[chat_id] = [status for statuses in server_statuses for status in statuses if statuses]
 
     async def check_servers_consistency(self, chat_id):
         if chat_id not in self.cache:
