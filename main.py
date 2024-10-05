@@ -14,6 +14,7 @@ class ServerStatusModule(BaseModule):
         self.servers = self.load_servers()
         self.cache = {}
         self.update_interval = 60
+        self.active_chats = set()
         self.update_task = None
         self.start_background_update()
 
@@ -46,17 +47,19 @@ class ServerStatusModule(BaseModule):
         try:
             while True:
                 await asyncio.sleep(self.update_interval)
-                await self.update_all_server_statuses()
+                await self.update_active_chats()
         except asyncio.CancelledError:
             return
 
-    async def update_all_server_statuses(self):
+    async def update_active_chats(self):
         tasks = []
-        for chat_id, server_list in self.servers.items():
-            tasks.append(self.update_chat_server_statuses(chat_id, server_list))
+        for chat_id in self.active_chats:
+            server_list = self.servers.get(chat_id, [])
+            if server_list:
+                tasks.append(self.update_chat_servers(chat_id, server_list))
         await asyncio.gather(*tasks)
 
-    async def update_chat_server_statuses(self, chat_id, server_list):
+    async def update_chat_servers(self, chat_id, server_list):
         tasks = [self.get_server_status(server_address) for server_address in server_list]
         self.cache[chat_id] = [status for statuses in await asyncio.gather(*tasks) for status in statuses if statuses]
 
@@ -68,7 +71,7 @@ class ServerStatusModule(BaseModule):
         server_statuses = self.cache.get(chat_id, [])
         
         if len(server_list) != len(server_statuses):
-            await self.update_all_server_statuses()
+            await self.update_chat_servers(chat_id, server_list)
 
     @allowed_for(["chat_admins", "chat_owner"])
     @command("addmcserver")
@@ -122,6 +125,7 @@ class ServerStatusModule(BaseModule):
 
         wait_message = await message.reply(self.S["mcstatus"]["please_wait"])
 
+        self.active_chats.add(chat_id)
         await self.check_servers_consistency(chat_id)
         server_statuses = self.cache.get(chat_id, [])
 
