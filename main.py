@@ -34,6 +34,13 @@ class ServerStatusModule(BaseModule):
 
     def start_background_update(self):
         self.update_task = asyncio.create_task(self.background_update())
+        self.update_task.add_done_callback(self.handle_task_completion)
+
+    def handle_task_completion(self, task):
+        try:
+            task.result()
+        except Exception as e:
+            self.logger.error(f"Background task failed: {e}")
 
     async def background_update(self):
         try:
