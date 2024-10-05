@@ -97,7 +97,7 @@ class ServerStatusModule(BaseModule):
         server_ip = server_address.split(":")[0]
         chat_id = str(message.chat.id)
 
-        if chat_id not in self.servers or (server_ip or server_address) not in [s.split(":")[0] for s in self.servers[chat_id]]:
+        if chat_id not in self.servers or server_ip not in [s.split(":")[0] for s in self.servers[chat_id]]:
             await message.reply(self.S["delmcserver"]["not_found"].format(server_address=server_address))
         else:
             self.servers[chat_id] = [s for s in self.servers[chat_id] if not s.startswith(server_ip)]
