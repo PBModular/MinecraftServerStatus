@@ -40,4 +40,4 @@ server_status:
     👀 <b>Гравці:</b> {status_players_online} з {status_players_max}
   server_offline: |
     🔴 Сервер <code>{server_address}</code> офлайн.
-    
+  player_list: ({player_names})

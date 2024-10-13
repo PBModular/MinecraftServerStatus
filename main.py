@@ -192,6 +192,9 @@ class ServerStatusModule(BaseModule):
                     bedrock_status_version_name=bedrock_status.version.name,
                     java_status_version_name=java_status.version.name
                 ))
+                if java_status.players.max <= 20 and java_status.players.sample:
+                    player_names = ", ".join([player.name for player in java_status.players.sample])
+                    messages[-1] += self.S['server_status']['player_list'].format(player_names=player_names)
                 return messages
             elif java_status:
                 messages.append(self.S["server_status"]["java"].format(
@@ -200,6 +203,9 @@ class ServerStatusModule(BaseModule):
                     status_players_max=java_status.players.max,
                     status_version_name=java_status.version.name
                 ))
+                if java_status.players.max <= 20 and java_status.players.sample:
+                    player_names = ", ".join([player.name for player in java_status.players.sample])
+                    messages[-1] += self.S['server_status']['player_list'].format(player_names=player_names)
             elif bedrock_status:
                 messages.append(self.S["server_status"]["bedrock"].format(
                     server_address=server_address,

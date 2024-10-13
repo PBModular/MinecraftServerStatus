@@ -40,4 +40,5 @@ server_status:
     👀 <b>Players:</b> {status_players_online} of {status_players_max}
   server_offline: |
     🔴 Server <code>{server_address}</code> is offline.
+  player_list: ({player_names})
     
