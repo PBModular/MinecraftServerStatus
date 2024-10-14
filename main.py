@@ -169,7 +169,7 @@ class ServerStatusModule(BaseModule):
             await message.edit(self.S["mcstatus"]["no_statuses"], reply_markup=refresh_button)
         else:
             current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            updated_message = "\n".join(server_statuses) + "\n" + self.S["mcstatus"]["last_update"].format(current_time=current_time)
+            updated_message = "\n".join(server_statuses) + "\n\n" + self.S["mcstatus"]["last_update"].format(current_time=current_time)
             await message.edit(updated_message, reply_markup=refresh_button)
 
         await callback_query.answer()
