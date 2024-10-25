@@ -82,13 +82,12 @@ class ServerStatusModule(BaseModule):
             return
 
         server_address = parts[1]
-        server_ip = server_address.split(":")[0]
         chat_id = str(message.chat.id)
 
         self.servers.setdefault(chat_id, [])
 
-        if server_ip in [s.split(":")[0] for s in self.servers[chat_id]]:
-            await message.reply(self.S["mcaddserver"]["already_added"].format(server_address=server_ip))
+        if server_address in self.servers[chat_id]:
+            await message.reply(self.S["mcaddserver"]["already_added"].format(server_address=server_address))
         else:
             self.servers[chat_id].append(server_address)
             self.save_servers()
@@ -103,13 +102,12 @@ class ServerStatusModule(BaseModule):
             return
 
         server_address = parts[1]
-        server_ip = server_address.split(":")[0]
         chat_id = str(message.chat.id)
 
-        if chat_id not in self.servers or server_ip not in [s.split(":")[0] for s in self.servers[chat_id]]:
+        if chat_id not in self.servers or server_address not in self.servers[chat_id]:
             await message.reply(self.S["delmcserver"]["not_found"].format(server_address=server_address))
         else:
-            self.servers[chat_id] = [s for s in self.servers[chat_id] if not s.startswith(server_ip)]
+            self.servers[chat_id] = [s for s in self.servers[chat_id] if not s.startswith(server_address)]
             if not self.servers[chat_id]:
                 del self.servers[chat_id]
             self.save_servers()
